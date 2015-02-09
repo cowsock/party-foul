@@ -39,8 +39,9 @@ public class Agent : MonoBehaviour {
 	public Drinkable drinkSource;
 	public Drink drink;
 
-	NavMeshAgent navAgent;
-	BoxCollider collide;
+	//NavMeshAgent navAgent;
+	//BoxCollider collide;
+	Animator anim;
 
 	public float defaultVel = 0.5f;
 
@@ -60,8 +61,9 @@ public class Agent : MonoBehaviour {
 		neighbors = new List<Agent> ();
 		collisionRisks = new List<Agent> ();
 
-		navAgent = GetComponent<NavMeshAgent> ();
-		collide = GetComponent<BoxCollider> ();
+		//navAgent = GetComponent<NavMeshAgent> ();
+		//collide = GetComponent<BoxCollider> ();
+		anim = GetComponent<Animator> ();
 
 		velocity = Random.onUnitSphere * defaultVel;
 		velocity.z = 0f;
@@ -124,10 +126,12 @@ public class Agent : MonoBehaviour {
 
 	IEnumerator Drinking(){
 		float startTime = Time.time;
+		anim.SetBool ("Drinking", true);
 		while (drink != null && Time.time - startTime < drink.potency) {
 			yield return null;		
 		}
 		currentActivity = Activity_e.inactive;
+		anim.SetBool ("Drinking", false);
 	}
 
 	IEnumerator Wait(){
