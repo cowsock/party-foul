@@ -22,7 +22,6 @@ public class Environment : MonoBehaviour {
 			Drinkable dr = go.GetComponent<Drinkable>();
 			if (dr != null){
 				drinkSources.Add (dr);
-				print ("added a drink source");
 			}
 		}
 	}

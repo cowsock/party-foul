@@ -11,10 +11,11 @@ public enum SongQuality_e{
 }
 
 public class Playlist : MonoBehaviour {
+	public static Playlist S;
 	static public List<Agent> musicAppreciators;
 
 	const int numSongs = 4;
-	int currentTrack;
+	public int currentTrack;
 
 	public AudioClip[] songs = new AudioClip[numSongs];
 	public SongQuality_e[] songRatings = new SongQuality_e[numSongs];
@@ -23,6 +24,7 @@ public class Playlist : MonoBehaviour {
 	double startTime;
 
 	void Awake(){
+		S = this;
 		musicAppreciators = new List<Agent>();
 	}
 
@@ -41,7 +43,7 @@ public class Playlist : MonoBehaviour {
 		// check for fade-out
 		if (AudioSettings.dspTime > startTime + songEndTime [currentTrack] - 10d) {
 			if (Camera.main.audio.volume > 0.1){
-				Camera.main.audio.volume -= 0.05f * Time.fixedDeltaTime;
+				Camera.main.audio.volume -= 0.12f * Time.fixedDeltaTime;
 			}
 		}
 		if (AudioSettings.dspTime > startTime + songEndTime[currentTrack]) {

@@ -39,6 +39,12 @@ public class Agent : MonoBehaviour {
 	public Drinkable drinkSource;
 	public Drink drink;
 
+
+	public Transform danceFloor;
+	// dancing inclination is multiplied by song rating to determine
+	// if it is time to boogie
+	public float dancingInclination;
+
 	//NavMeshAgent navAgent;
 	//BoxCollider collide;
 	Animator anim;
@@ -117,6 +123,22 @@ public class Agent : MonoBehaviour {
 					newVelocity += dist * 0.20f;
 				}
 			}
+
+			if (priorityActivity == Activity_e.dancing && currentActivity == Activity_e.inactive ||
+			    	currentActivity == Activity_e.dancing){
+				if (danceFloor == null){
+					danceFloor = GameObject.FindGameObjectWithTag("DanceFloor").transform;
+				}
+				if (danceFloor != null){
+					if ((int)Playlist.S.songRatings[Playlist.S.currentTrack] * dancingInclination > 3f){
+						dist = danceFloor.position - this.transform.position;
+						newVelocity += dist * 0.20f;
+					}
+					else{
+						//priorityActivity = PickNewActivity();
+					}
+				}
+			}
 			
 			// newVelocity and newPosition ready, but wait until LateUpdate to set		
 			yield return null;
@@ -125,6 +147,7 @@ public class Agent : MonoBehaviour {
 	}
 
 	IEnumerator Drinking(){
+		currentActivity = Activity_e.drinking;
 		float startTime = Time.time;
 		anim.SetBool ("Drinking", true);
 		while (drink != null && Time.time - startTime < drink.potency) {
@@ -132,6 +155,18 @@ public class Agent : MonoBehaviour {
 		}
 		currentActivity = Activity_e.inactive;
 		anim.SetBool ("Drinking", false);
+	}
+
+	IEnumerator Dancing(){
+		currentActivity = Activity_e.dancing;
+		int track = Playlist.S.currentTrack;
+		anim.SetBool ("Dancing", true);
+		while (track == Playlist.S.currentTrack) {
+			yield return null;		
+		}
+		currentActivity = Activity_e.inactive;
+		anim.SetBool ("Dancing", false);
+
 	}
 
 	IEnumerator Wait(){
@@ -142,19 +177,32 @@ public class Agent : MonoBehaviour {
 		}
 		StartCoroutine (Move ());
 	}
+
+	Activity_e PickNewActivity(){
+		int choice = Random.Range (0, 2);
+		if (choice == 0)
+			return Activity_e.drinking;
+		else if (choice == 1)
+			return Activity_e.dancing;
+		return Activity_e.talking;
+	}
 	
 	// Update is called once per frame
 	void Update () {
 		if (priorityActivity == Activity_e.drinking && drinkSource != null) {
-			if ((transform.position - drinkSource.transform.position).magnitude < collisionDist){ // close enough to drinkSource
-				// get drink (could be significant later)
-				drink = drinkSource.GetDrink();
-				currentActivity = Activity_e.drinking;
-				//forget about drink source
-				drinkSource = null;
-				// coroutine could later be used to have specific messages play.
-				StartCoroutine(Drinking ());
-			}
+						if ((transform.position - drinkSource.transform.position).magnitude < collisionDist) { // close enough to drinkSource
+								// get drink (could be significant later)
+								drink = drinkSource.GetDrink ();
+								//forget about drink source
+								drinkSource = null;
+								// coroutine could later be used to have specific messages play.
+								StartCoroutine (Drinking ());
+						}
+		} else if (priorityActivity == Activity_e.dancing && currentActivity == Activity_e.inactive
+		           && danceFloor != null) {
+				if ((transform.position - danceFloor.transform.position).magnitude < nearDist){
+					StartCoroutine("Dancing");
+				}	
 		}
 	}
 
@@ -262,4 +310,13 @@ public class Agent : MonoBehaviour {
 			
 		}
 	}
+
+	void OnTriggerExit(Collider coll){
+		if (coll.tag == "DanceFloor" && currentActivity == Activity_e.dancing) {
+			currentActivity = Activity_e.inactive;
+			anim.SetBool("Dancing", false);
+			StopCoroutine("Dancing");
+		}
+	}
+
 }
