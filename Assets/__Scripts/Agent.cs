@@ -49,6 +49,8 @@ public class Agent : MonoBehaviour {
 	//BoxCollider collide;
 	Animator anim;
 
+	float changedAnim = -1000f;
+
 	public float defaultVel = 0.5f;
 
 	public float nearDist = 5f;
@@ -186,6 +188,44 @@ public class Agent : MonoBehaviour {
 			return Activity_e.dancing;
 		return Activity_e.talking;
 	}
+
+	void FixedUpdate(){
+		if (currentActivity == Activity_e.inactive && Time.time - changedAnim > 0.3f) {
+			changedAnim = Time.time;
+			// update facing
+			if (Mathf.Abs (velocity.x) > Mathf.Abs (velocity.y)) { // x greater than y
+					if (velocity.x > 0) {
+						facing = Facing_e.right;
+						anim.SetBool("FaceLeft", true);
+						anim.SetBool ("FaceUp", false);
+						anim.SetBool ("FaceDown", false);
+						if (transform.localScale.x > 0){
+							FlipX();
+						}
+					} else {
+						facing = Facing_e.left;
+						anim.SetBool ("FaceUp", false);
+						anim.SetBool ("FaceDown", false);
+						anim.SetBool("FaceLeft", true);
+						if (transform.localScale.x < 0){
+							FlipX ();
+						}
+					}
+			} else { // y greater than x
+					if (velocity.y > 0) {
+						facing = Facing_e.up;
+						anim.SetBool ("FaceUp", true);
+						anim.SetBool ("FaceDown", false);
+						anim.SetBool("FaceLeft", false);
+					} else {
+						facing = Facing_e.down;
+						anim.SetBool("FaceDown", true);
+						anim.SetBool("FaceUp", false);
+						anim.SetBool("FaceLeft", false);
+					}
+			}
+		}
+	}
 	
 	// Update is called once per frame
 	void Update () {
@@ -207,24 +247,27 @@ public class Agent : MonoBehaviour {
 	}
 
 	void LateUpdate(){
-		if (moving) {
-						velocity = (1 - 0.25f) * velocity + (0.25f * newVelocity); // lerp amount could be parameterized
+		if (!moving) return;
+						
+		velocity = (1 - 0.25f) * velocity + (0.25f * newVelocity); // lerp amount could be parameterized
 
-						// make sure velocity is within min and max (though these could be the same for constant vel
-						if (velocity.magnitude > defaultVel) {
-								velocity = velocity.normalized * defaultVel;
-						}
-						if (velocity.magnitude < defaultVel) {
-								velocity = velocity.normalized * defaultVel;		
-						}
-
-						// decide on new position
-						newPosition = this.transform.position + velocity * Time.deltaTime;
-						// keep everything in the XY plane
-						newPosition.z = 0;
-						// Look from the old position at the newPosition to orient the model???
-						this.transform.position = newPosition;
+		// make sure velocity is within min and max (though these could be the same for constant vel
+		if (velocity.magnitude > defaultVel) {
+			velocity = velocity.normalized * defaultVel;
 		}
+		if (velocity.magnitude < defaultVel) {
+			velocity = velocity.normalized * defaultVel;		
+		}
+
+		// decide on new position
+		newPosition = this.transform.position + velocity * Time.deltaTime;
+		// keep everything in the XY plane
+		newPosition.z = 0;
+		// Look from the old position at the newPosition to orient the model???
+		this.transform.position = newPosition;
+
+
+		
 	}
 
 	// returns Agents near enough to ag to be considered neighbors
@@ -317,6 +360,12 @@ public class Agent : MonoBehaviour {
 			anim.SetBool("Dancing", false);
 			StopCoroutine("Dancing");
 		}
+	}
+
+	public void FlipX(){
+		Vector3 scale = transform.localScale;
+		scale.x *= -1;
+		transform.localScale = scale;
 	}
 
 }

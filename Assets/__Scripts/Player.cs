@@ -59,6 +59,7 @@ public class Player : MonoBehaviour {
 
 		switch(moveState){
 			case MoveState_e.idle:
+				anim.SetBool ("WalkLeft", false);
 				return;
 				break;
 			case MoveState_e.up:
@@ -115,9 +116,14 @@ public class Player : MonoBehaviour {
 		Vector3 pos = transform.position;
 		pos.x -= dt * speed;
 		transform.position = pos;
-		if (facing == Facing_e.right){
+		anim.SetBool ("FaceUp", false);
+		anim.SetBool ("FaceDown", false);
+		anim.SetBool ("WalkLeft", true);
+		anim.SetBool ("FaceLeft", true);
+		if (transform.localScale.x < 0){
 			FlipX();
 		}
+		facing = Facing_e.left;
 	}
 
 	void MoveR(){
@@ -125,9 +131,14 @@ public class Player : MonoBehaviour {
 		Vector3 pos = transform.position;
 		pos.x += dt * speed;
 		transform.position = pos;
-		if (facing == Facing_e.left){
+		anim.SetBool ("FaceUp", false);
+		anim.SetBool ("FaceDown", false);
+		anim.SetBool ("WalkLeft", true);
+		anim.SetBool ("FaceLeft", true);
+		if (transform.localScale.x > 0){
 			FlipX();
 		}
+		facing = Facing_e.right;
 	}
 
 	void MoveU(){
@@ -135,9 +146,14 @@ public class Player : MonoBehaviour {
 		Vector3 pos = transform.position;
 		pos.y += dt * speed;
 		transform.position = pos;
+		anim.SetBool ("WalkLeft", false);
+		anim.SetBool ("FaceLeft", false);
+		anim.SetBool ("FaceUp", true);
 		if (facing == Facing_e.down){
-			FlipY();
+			//FlipY();
+			anim.SetBool ("FaceDown", false);
 		}
+		facing = Facing_e.up;
 	}
 
 	void MoveD(){
@@ -145,18 +161,20 @@ public class Player : MonoBehaviour {
 		Vector3 pos = transform.position;
 		pos.y -= dt * speed;
 		transform.position = pos;
+		anim.SetBool ("WalkLeft", false);
+		anim.SetBool ("FaceLeft", false);
+		anim.SetBool ("FaceDown", true);
 		if (facing == Facing_e.up){
-			FlipY();
+			//FlipY();
+			anim.SetBool ("FaceUp", false);
+
 		}
+		facing = Facing_e.down;
 	}
 
 
 
 	public void FlipX(){
-		if (facing == Facing_e.right)
-			facing = Facing_e.left;
-		else if (facing == Facing_e.left)
-			facing = Facing_e.right;
 		Vector3 scale = transform.localScale;
 		scale.x *= -1;
 		transform.localScale = scale;
@@ -171,6 +189,8 @@ public class Player : MonoBehaviour {
 		scale.y *= -1;
 		transform.localScale = scale;
 	}
+
+
 
 
 	bool PressingLeft() {
