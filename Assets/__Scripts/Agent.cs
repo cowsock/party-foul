@@ -9,12 +9,12 @@ public enum Activity_e {
 	talking
 }
 
-public enum Facing_e{
-	up,
-	down,
-	left,
-	right
-}
+//public enum Facing_e{
+//	up,
+//	down,
+//	left,
+//	right
+//}
 
 
 
