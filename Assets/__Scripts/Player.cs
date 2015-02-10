@@ -25,7 +25,10 @@ public class Player : MonoBehaviour {
 	public Facing_e facing;
 	public MoveState_e moveState;
 
+
 	Animator anim;
+
+	public GameObject leg;
 
 	// inventory (4 slots)
 	// slot for big item (in hands)
@@ -33,8 +36,10 @@ public class Player : MonoBehaviour {
 	// public var for currently stealing something
 	public bool stealing;
 	// private variable for checking command to *try* to grab
+	public bool itemInHand;
 	bool grabbing;
 
+	bool canGrab;
 
 	public float grabDuration;
 
@@ -46,13 +51,17 @@ public class Player : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		stealing = false;
+		canGrab = false;
+		itemInHand = false;
 	}
 	
 	// Update is called once per frame
 	void FixedUpdate () {
 		// first check for grab attempt
-		if (grabbing){
-			// see what's what
+		if (grabbing){ // as in player is pressing the button
+			if (canGrab){ // as in near enough the item
+				StartCoroutine(Steal());
+			}
 
 			grabbing = false;
 		}
@@ -108,7 +117,48 @@ public class Player : MonoBehaviour {
 			yield return null;
 		}
 		stealing = false;
-		// add item to inventory
+		Item itemRef = GetClosestItem();
+		if (!itemRef.carryByHand) // add item to inventory
+			PartyFoul.S.AddToInventory(GetClosestItem());
+		else { // right now the only item you can do this with is the leg
+			itemInHand = true;
+			PartyFoul.S.cashExtracted += itemRef.value;
+			
+			leg.GetComponent<SpriteRenderer>().enabled = true;
+			Destroy(itemRef.gameObject);
+		}
+		
+	}
+
+	Item GetClosestItem(){
+		GameObject closest = null;
+		GameObject[] objs = GameObject.FindGameObjectsWithTag("Item");
+		float nearestDist = float.MaxValue;
+		Vector3 delta;
+		float dist;
+		
+		foreach(GameObject go in objs){
+			delta = go.transform.position - transform.position;
+			dist = delta.magnitude;
+			if (dist < nearestDist){
+				nearestDist = dist;
+				closest = go;
+			}
+		}
+		if (closest == null) return null;
+		return closest.GetComponent<Item>();
+	}
+
+	void OnTriggerEnter(Collider coll){
+		if (coll.tag == "Item"){
+			canGrab = true;
+		}
+	}
+
+	void OnTriggerExit(Collider coll){
+		if (coll.tag == "Item"){
+			canGrab = false;
+		}
 	}
 
 	void MoveL(){

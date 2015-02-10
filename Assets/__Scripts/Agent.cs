@@ -36,6 +36,8 @@ public class Agent : MonoBehaviour {
 	public Activity_e priorityActivity;
 	public Facing_e facing;
 
+	public bool alert;
+
 	public Drinkable drinkSource;
 	public Drink drink;
 
@@ -55,6 +57,8 @@ public class Agent : MonoBehaviour {
 
 	public float nearDist = 5f;
 	public float collisionDist = 0.5f;
+
+	public float raycastDist;
 
 	public float moveDuration;
 	public float waitDuration;
@@ -84,6 +88,7 @@ public class Agent : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		currentActivity = Activity_e.inactive;
+		alert = false;
 		StartCoroutine (StartDelay ());
 	}
 
@@ -193,9 +198,16 @@ public class Agent : MonoBehaviour {
 		if (currentActivity == Activity_e.inactive && Time.time - changedAnim > 0.3f) {
 			changedAnim = Time.time;
 			// update facing
+			bool foundPlayer;
+			Ray ray = new Ray(transform.position, transform.position);
+			ray.origin = transform.position;
+			Vector3 direction = transform.position;
 			if (Mathf.Abs (velocity.x) > Mathf.Abs (velocity.y)) { // x greater than y
 					if (velocity.x > 0) {
 						facing = Facing_e.right;
+					// update ray for raycast!
+						direction.x += 1f;
+						
 						anim.SetBool("FaceLeft", true);
 						anim.SetBool ("FaceUp", false);
 						anim.SetBool ("FaceDown", false);
@@ -204,6 +216,7 @@ public class Agent : MonoBehaviour {
 						}
 					} else {
 						facing = Facing_e.left;
+						direction.x -= 1f;
 						anim.SetBool ("FaceUp", false);
 						anim.SetBool ("FaceDown", false);
 						anim.SetBool("FaceLeft", true);
@@ -214,15 +227,26 @@ public class Agent : MonoBehaviour {
 			} else { // y greater than x
 					if (velocity.y > 0) {
 						facing = Facing_e.up;
+						direction.y += 1f;
 						anim.SetBool ("FaceUp", true);
 						anim.SetBool ("FaceDown", false);
 						anim.SetBool("FaceLeft", false);
 					} else {
 						facing = Facing_e.down;
+						direction.y -= 1f;
 						anim.SetBool("FaceDown", true);
 						anim.SetBool("FaceUp", false);
 						anim.SetBool("FaceLeft", false);
 					}
+			}
+			ray.direction = direction;
+			foundPlayer = Physics.Raycast(ray, raycastDist, 1 << LayerMask.NameToLayer("Player"));
+			if (foundPlayer){
+				print ("Raycast at player");
+				if (Player.S.stealing || Player.S.itemInHand){
+					alert = true;
+					PartyFoul.S.StartAlert();
+				}
 			}
 		}
 	}
