@@ -6,7 +6,8 @@ public enum Activity_e {
 	inactive,
 	drinking,
 	dancing,
-	talking
+	talking,
+	alert
 }
 
 //public enum Facing_e{
@@ -36,7 +37,6 @@ public class Agent : MonoBehaviour {
 	public Activity_e priorityActivity;
 	public Facing_e facing;
 
-	public bool alert;
 
 	public Drinkable drinkSource;
 	public Drink drink;
@@ -54,6 +54,7 @@ public class Agent : MonoBehaviour {
 	float changedAnim = -1000f;
 
 	public float defaultVel = 0.5f;
+	public float alertVel;
 
 	public float nearDist = 5f;
 	public float collisionDist = 0.5f;
@@ -88,7 +89,6 @@ public class Agent : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		currentActivity = Activity_e.inactive;
-		alert = false;
 		StartCoroutine (StartDelay ());
 	}
 
@@ -99,8 +99,8 @@ public class Agent : MonoBehaviour {
 
 	IEnumerator Move(){
 		moving = true;
-		float startTime = Time.time;
-		while (Time.time - startTime < moveDuration) {
+		float startTime = Time.timeSinceLevelLoad;
+		while (Time.timeSinceLevelLoad - startTime < moveDuration) {
 			neighbors = GetNeighbors (this);
 			
 			newVelocity = velocity;
@@ -117,7 +117,10 @@ public class Agent : MonoBehaviour {
 				dist = collisionAveragePos - this.transform.position;
 				newVelocity += dist * -0.5f; // collision avoidance amount
 			}
-			
+			if (currentActivity == Activity_e.alert){
+				dist = Player.S.transform.position - this.transform.position;
+				newVelocity += dist * 0.5f;
+			}
 			// attraction to "fun" 
 			if (priorityActivity == Activity_e.drinking && currentActivity == Activity_e.inactive){
 				if (drinkSource == null){
@@ -155,9 +158,9 @@ public class Agent : MonoBehaviour {
 
 	IEnumerator Drinking(){
 		currentActivity = Activity_e.drinking;
-		float startTime = Time.time;
+		float startTime = Time.timeSinceLevelLoad;
 		anim.SetBool ("Drinking", true);
-		while (drink != null && Time.time - startTime < drink.potency) {
+		while (drink != null && Time.timeSinceLevelLoad - startTime < drink.potency) {
 			yield return null;		
 		}
 		currentActivity = Activity_e.inactive;
@@ -178,8 +181,8 @@ public class Agent : MonoBehaviour {
 
 	IEnumerator Wait(){
 		moving = false;
-		float startTime = Time.time;
-		while (Time.time - startTime < waitDuration) {
+		float startTime = Time.timeSinceLevelLoad;
+		while (Time.timeSinceLevelLoad - startTime < waitDuration) {
 			yield return null;		
 		}
 		StartCoroutine (Move ());
@@ -195,8 +198,9 @@ public class Agent : MonoBehaviour {
 	}
 
 	void FixedUpdate(){
-		if (currentActivity == Activity_e.inactive && Time.time - changedAnim > 0.3f) {
-			changedAnim = Time.time;
+		if ((currentActivity == Activity_e.inactive || currentActivity == Activity_e.alert)
+		    	&& Time.timeSinceLevelLoad - changedAnim > 0.3f) {
+			changedAnim = Time.timeSinceLevelLoad;
 			// update facing
 			bool foundPlayer;
 			Ray ray = new Ray(transform.position, transform.position);
@@ -211,18 +215,12 @@ public class Agent : MonoBehaviour {
 						anim.SetBool("FaceLeft", true);
 						anim.SetBool ("FaceUp", false);
 						anim.SetBool ("FaceDown", false);
-						if (transform.localScale.x > 0){
-							FlipX();
-						}
 					} else {
 						facing = Facing_e.left;
 						direction.x -= 1f;
 						anim.SetBool ("FaceUp", false);
 						anim.SetBool ("FaceDown", false);
 						anim.SetBool("FaceLeft", true);
-						if (transform.localScale.x < 0){
-							FlipX ();
-						}
 					}
 			} else { // y greater than x
 					if (velocity.y > 0) {
@@ -242,13 +240,22 @@ public class Agent : MonoBehaviour {
 			ray.direction = direction;
 			foundPlayer = Physics.Raycast(ray, raycastDist, 1 << LayerMask.NameToLayer("Player"));
 			if (foundPlayer){
-				print ("Raycast at player");
+				//print ("Raycast at player");
 				if (Player.S.stealing || Player.S.itemInHand){
-					alert = true;
-					PartyFoul.S.StartAlert();
+					Alert ();
 				}
 			}
+			// if any collision-risk agent has an alert, it spreads to this agent.
+			if (ContainsAlert(collisionRisks)){
+				Alert ();
+			}
 		}
+	}
+
+	void Alert(){
+		PartyFoul.S.StartAlert();
+		currentActivity = Activity_e.alert;
+		defaultVel = alertVel;
 	}
 	
 	// Update is called once per frame
@@ -291,7 +298,10 @@ public class Agent : MonoBehaviour {
 		this.transform.position = newPosition;
 
 
-		
+		if (facing == Facing_e.right && transform.localScale.x > 0)
+						FlipX ();
+				else if (facing == Facing_e.left && transform.localScale.x < 0)
+						FlipX ();
 	}
 
 	// returns Agents near enough to ag to be considered neighbors
@@ -323,7 +333,14 @@ public class Agent : MonoBehaviour {
 		return neighbors;
 	}
 
-
+	// returns true if any agent in list is in alert state
+	public bool ContainsAlert(List<Agent> someAgents){
+		foreach (Agent a in someAgents) {
+			if (a.currentActivity == Activity_e.alert)
+				return true;
+		}
+		return false;
+	}
 
 	public Vector3 GetAveragePosition(List<Agent> someAgents){
 		Vector3 sum = Vector3.zero;
@@ -363,6 +380,11 @@ public class Agent : MonoBehaviour {
 	}
 
 	void OnTriggerStay(Collider coll){
+		if (coll.tag == "Player") {
+			if (Player.S.stealing || Player.S.itemInHand){
+				Alert();
+			}		
+		}
 		if (coll.tag == "BoundaryUp") {
 			velocity.y -= defaultVel;
 			
@@ -388,7 +410,7 @@ public class Agent : MonoBehaviour {
 
 	public void FlipX(){
 		Vector3 scale = transform.localScale;
-		scale.x *= -1;
+		scale.x *= -1f;
 		transform.localScale = scale;
 	}
 

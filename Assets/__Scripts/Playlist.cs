@@ -30,7 +30,7 @@ public class Playlist : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		currentTrack = Random.Range (0, numSongs-1);
+		currentTrack = Random.Range (0, numSongs);
 		Camera.main.audio.clip =  songs [currentTrack];
 		startTime = AudioSettings.dspTime + 1;
 		Camera.main.audio.PlayScheduled (startTime);

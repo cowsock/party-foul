@@ -43,6 +43,10 @@ public class Player : MonoBehaviour {
 
 	public float grabDuration;
 
+	// number of agents currently colliding with player
+	public int agentsCurrentlyColliding;
+	public int numAgentsToCatchPlayer;
+
 	void Awake(){
 		S = this;
 		anim = GetComponent<Animator>();
@@ -53,6 +57,7 @@ public class Player : MonoBehaviour {
 		stealing = false;
 		canGrab = false;
 		itemInHand = false;
+		agentsCurrentlyColliding = 0;
 	}
 	
 	// Update is called once per frame
@@ -84,8 +89,12 @@ public class Player : MonoBehaviour {
 				MoveR();
 				break;
 		}
-		// process movement
-		// process facing (animation)
+		// check if player has been caught!
+		if (agentsCurrentlyColliding >= numAgentsToCatchPlayer) {
+			Time.timeScale = 0f;
+			new WaitForSeconds(1.5f);
+			Application.LoadLevel ("GameOver");
+		}
 	}
 
 	void Update(){
@@ -112,8 +121,8 @@ public class Player : MonoBehaviour {
 	// add param for item currently being nabbed
 	IEnumerator Steal(){
 		stealing = true;
-		float startTime = Time.time;
-		while (Time.time - startTime > grabDuration){
+		float startTime = Time.timeSinceLevelLoad;
+		while (Time.timeSinceLevelLoad - startTime < grabDuration){
 			yield return null;
 		}
 		stealing = false;
@@ -150,14 +159,23 @@ public class Player : MonoBehaviour {
 	}
 
 	void OnTriggerEnter(Collider coll){
-		if (coll.tag == "Item"){
+		if (coll.tag == "Item") {
 			canGrab = true;
+		} else if (coll.tag == "Agent") {
+			if (coll.GetComponent<Agent>().currentActivity == Activity_e.alert)
+				++agentsCurrentlyColliding;	
+		} else if (coll.tag == "Exit") {
+			PlayerPrefs.SetInt("CREAM", PartyFoul.S.cashExtracted);
+			Application.LoadLevel("Success");
 		}
 	}
 
 	void OnTriggerExit(Collider coll){
-		if (coll.tag == "Item"){
+		if (coll.tag == "Item") {
 			canGrab = false;
+		} else if (coll.tag == "Agent") {
+			if (coll.GetComponent<Agent>().currentActivity == Activity_e.alert)
+				--agentsCurrentlyColliding;		
 		}
 	}
 
