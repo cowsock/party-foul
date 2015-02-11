@@ -64,11 +64,11 @@ public class Player : MonoBehaviour {
 	void FixedUpdate () {
 		// first check for grab attempt
 		if (grabbing){ // as in player is pressing the button
-			if (canGrab){ // as in near enough the item
+			if (canGrab && !stealing){ // as in near enough the item
+				canGrab = false;
 				StartCoroutine(Steal());
 			}
 
-			grabbing = false;
 		}
 
 		switch(moveState){
@@ -120,9 +120,11 @@ public class Player : MonoBehaviour {
 
 	// add param for item currently being nabbed
 	IEnumerator Steal(){
+		grabbing = false;
 		stealing = true;
 		float startTime = Time.timeSinceLevelLoad;
 		while (Time.timeSinceLevelLoad - startTime < grabDuration){
+
 			yield return null;
 		}
 		stealing = false;

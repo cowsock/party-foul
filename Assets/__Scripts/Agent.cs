@@ -256,6 +256,8 @@ public class Agent : MonoBehaviour {
 		PartyFoul.S.StartAlert();
 		currentActivity = Activity_e.alert;
 		defaultVel = alertVel;
+		Playlist.S.Alert();
+		waitDuration = 0f;
 	}
 	
 	// Update is called once per frame
